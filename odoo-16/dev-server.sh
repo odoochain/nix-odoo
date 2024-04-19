@@ -130,6 +130,37 @@ command_pip_install_requirements() {
     fi
 }
 
+command_pre_commit_install_hooks() {
+    ./.venv/bin/pip install -U py
+    if [ -d addons ]; then
+        echo "START: pre-commit install (Git pre-commit hooks) ..."
+        if [ -f addons/.pre-commit-config.yaml ]; then
+            echo "Executing pre-commit install in Git checkout (dir): addons ..."
+            cd addons
+            pre-commit install
+            pre-commit install --hook-type commit-msg
+            pre-commit autoupdate
+            cd ..
+        else
+            echo "Skip pre-commit install. No .pre-commit-config.yaml found or not a Git clone: addons"
+        fi
+        for dir in addons/*; do
+            if [ -d $dir ] && [ -f $dir/.pre-commit-config.yaml ]; then
+                echo "Executing pre-commit install in Git checkout (dir): $dir ..."
+                cd $dir
+                pre-commit install
+                pre-commit install --hook-type commit-msg
+                pre-commit autoupdate
+                cd ..
+            elif [ -d $dir ]; then
+                echo "Skip pre-commit install. No .pre-commit-config.yaml found or not a Git clone: $dir"
+            fi
+        done;
+        echo "DONE: pre-commit install (Git pre-commit hooks) ..."
+        echo ""
+    fi
+}
+
 COMMAND="${1:-}"
 [ -n "$COMMAND" ] && shift
 
@@ -139,13 +170,21 @@ case "$COMMAND" in
 	command_postgres_init
 	command_virtualenv_create
         command_pip_install_requirements
+        command_pre_commit_install_hooks
         ## poetry
 	# poetry install
 	# poetry run python -m pip install --upgrade pip &
 	# poetry run pip install -U -r addons/requirements.txt
         ;;
+    update)
+        command_pre_commit_install_hooks
+        command_pip_install_requirements
+        ;;
     pip_install)
         command_pip_install_requirements "$@"
+        ;;
+    pre_commit_install)
+        command_pre_commit_install_hooks
         ;;
     shell)
         command_postgres &
@@ -164,7 +203,7 @@ case "$COMMAND" in
 	.venv/bin/python ./odoo/odoo-bin -c odoo.conf -d $1 --test-enable --stop-after-init -i "${@: 2}"
         pg_ctl -D "$PGDATA" stop
         ;;
-    upgrade)
+    odoo_upgrade)
         command_postgres &
 	.venv/bin/python ./odoo/odoo-bin -c odoo.conf -d $1 --stop-after-init -u "${@: 2}"
         ;;
@@ -204,19 +243,25 @@ case "$COMMAND" in
         echo "      Commands executed (if requirements.txt file exist):"
         echo "      $ pip install -U -r odoo/requirements.txt"
         echo "      $ pip install -U -r addons/requirements.txt"
+	echo "  pre_commit_install "
+        echo "      Install pre-commit hooks (when present)."
+        echo "      Commands executed when each Git addons repo clone has a .pre-commit-config.yaml file:"
+        echo "      $ pre-commit install"
+        echo "      $ pre-commit install --hook-type commit-msg"
+        echo "      $ pre-commit autoupdate"
         echo "  shell "
         echo "      Starts the Odoo shell (Python repl) with the database server."
         echo "      First arg is a database."
         echo "      ./dev-server.sh shell DATABASE"
         echo "  start "
-        echo "      Starts the Odoo webserver with the database server."
+        echo "      Starts the Odoo server with the database server."
         echo "  test "
         echo "      Run tests."
         echo "      First arg is a database."
         echo "      Next args are module(s)."
         echo "      ./dev-server.sh test odoo_test module_1 module_2"
-        echo "  upgrade "
-        echo "      Upgrade module(s)."
+        echo "  odoo_upgrade "
+        echo "      Upgrade Odoo module(s)."
         echo "      First arg is a database."
         echo "      Next arg is a comma-separated list of modules to update before running the server."
         echo "      ./dev-server.sh upgrade odoo_test module_1,module_2"

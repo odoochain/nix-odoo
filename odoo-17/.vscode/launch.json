@@ -1,0 +1,25 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Odoo",
+            "type": "python",
+            "request": "launch",
+            "stopOnEntry": false,
+            "pythonPath": "${userHome}/odoo/projects/PROJECT/.venv/bin/python",
+            "program": "${userHome}/odoo/projects/PROJECT/odoo/odoo-bin",
+             "args": [
+                "--config=odoo.conf",
+            ],
+            "cwd": "${userHome}/odoo/projects/PROJECT",
+            "env": {},
+            "envFile": "${userHome}/odoo/projects/PROJECT/.venv",
+            "debugOptions": [
+                "RedirectOutput"
+            ]
+        }
+    ]
+}
